@@ -1,85 +1,91 @@
 
+/* ========================================
+   МЕЖДУ СТРОК — ИНТЕРАКТИВНОСТЬ
+   ======================================== */
+
 document.addEventListener("DOMContentLoaded", () => {
   const menuToggle = document.getElementById("menuToggle");
   const mainNav = document.getElementById("mainNav");
 
-  // Открытие и закрытие меню на телефоне и планшете
+  // Мобильное меню
   if (menuToggle && mainNav) {
+    menuToggle.setAttribute("aria-expanded", "false");
+
     menuToggle.addEventListener("click", () => {
       const isOpen = mainNav.classList.toggle("open");
 
       menuToggle.setAttribute("aria-expanded", String(isOpen));
-      menuToggle.setAttribute(
-        "aria-label",
-        isOpen ? "Закрыть меню" : "Открыть меню"
-      );
-
-      menuToggle.textContent = isOpen ? "✕" : "☰";
+      menuToggle.textContent = isOpen ? "Закрыть ✕" : "Меню ☾";
     });
 
-    // Закрываем меню после перехода к разделу
+    // Закрываем меню после выбора раздела
     mainNav.querySelectorAll("a").forEach((link) => {
       link.addEventListener("click", () => {
         mainNav.classList.remove("open");
         menuToggle.setAttribute("aria-expanded", "false");
-        menuToggle.setAttribute("aria-label", "Открыть меню");
-        menuToggle.textContent = "☰";
+        menuToggle.textContent = "Меню ☾";
       });
+    });
+
+    // Закрываем меню клавишей Escape
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        mainNav.classList.remove("open");
+        menuToggle.setAttribute("aria-expanded", "false");
+        menuToggle.textContent = "Меню ☾";
+      }
     });
   }
 
-  // Подсвечиваем пункт меню в зависимости от раздела на экране
-  const sections = document.querySelectorAll("main section[id]");
-  const navLinks = document.querySelectorAll(".main-nav a");
-
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-
-          navLinks.forEach((link) => {
-            const isCurrent =
-              link.getAttribute("href") === `#${entry.target.id}`;
-
-            link.classList.toggle("active", isCurrent);
-          });
-        });
-      },
-      {
-        rootMargin: "-25% 0px -60% 0px",
-        threshold: 0
-      }
-    );
-
-    sections.forEach((section) => observer.observe(section));
-  }
-
-  // Плавный переход по внутренним ссылкам
+  // Плавный переход к разделам сайта
   document.querySelectorAll('a[href^="#"]').forEach((link) => {
     link.addEventListener("click", (event) => {
       const targetId = link.getAttribute("href");
+
+      if (!targetId || targetId === "#") return;
+
       const target = document.querySelector(targetId);
 
-      if (!target) return;
+      if (target) {
+        event.preventDefault();
 
-      event.preventDefault();
+        target.scrollIntoView({
+          behavior: window.matchMedia(
+            "(prefers-reduced-motion: reduce)"
+          ).matches
+            ? "auto"
+            : "smooth",
+          block: "start"
+        });
 
-      target.scrollIntoView({
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        // Обновляем адресную строку без резкого скачка
+        if (window.location.hash !== targetId) {
+          history.pushState(null, "", targetId);
+        }
+      }
+    });
+  });
+
+  // Текущий год в подвале
+  const yearElements = document.querySelectorAll("[data-current-year]");
+
+  yearElements.forEach((element) => {
+    element.textContent = new Date().getFullYear();
+  });
+
+  // Кнопка возвращения наверх, если она есть в HTML
+  const backToTop = document.querySelector("[data-back-to-top]");
+
+  if (backToTop) {
+    backToTop.addEventListener("click", () => {
+      window.scrollTo({
+        top: 0,
+        behavior: window.matchMedia(
+          "(prefers-reduced-motion: reduce)"
+        ).matches
           ? "auto"
-          : "smooth",
-        block: "start"
+          : "smooth"
       });
-
-      history.replaceState(null, "", targetId);
     });
-  });
-
-  // Небольшая защита от случайного двойного нажатия
-  document.querySelectorAll(".primary-link").forEach((link) => {
-    link.addEventListener("click", () => {
-      link.blur();
-    });
-  });
+  }
 });
